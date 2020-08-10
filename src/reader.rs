@@ -1,7 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read};
-use crate::classfile;
 use crate::classfile::ClassFile;
+use crate::cp_info::{CPInfo, Class, Methodref};
 
 pub struct Reader {
     file: File,
@@ -30,7 +30,7 @@ impl Reader {
             Err(e) => {
                 panic!("Error reading data: {}", e)
             }
-        }
+        };
     }
 
     pub fn read_class_file(&mut self) -> ClassFile {
@@ -52,7 +52,47 @@ impl Reader {
         cpc_array.copy_from_slice(&bytes[8..10]);
         let cpc_int = u16::from_be_bytes(cpc_array);
 
-        ClassFile::new(magic_int, minor_int, major_int, cpc_int)
+        let cp_infos: Vec<Box<dyn CPInfo>> = self.read_cp_infos(bytes[10..].to_vec());
+
+        ClassFile::new(magic_int, minor_int, major_int, cpc_int, cp_infos)
+    }
+
+    pub fn read_cp_infos(&self, bytes: Vec<u8>) -> Vec<Box<dyn CPInfo>> {
+        let mut cp_infos: Vec<Box<dyn CPInfo>> = Vec::new();
+
+        let mut index = 0;
+        while index < bytes.len() {
+            let mut tag = bytes.get(index).unwrap();
+            match tag {
+                7 => {
+                    println!("Got 7");
+                    let mut name_index_arr: [u8; 2] = Default::default();
+                    name_index_arr.copy_from_slice(&bytes[1..3]);
+                    let name_index = u16::from_be_bytes(name_index_arr);
+                    cp_infos.push(Box::new(Class::new(name_index)))
+                }
+                10 => {
+                    println!("Got 10");
+                    let mut class_index_arr: [u8; 2] = Default::default();
+                    let i1_start = index + 1;
+                    let i1_end = index + 3;
+                    class_index_arr.copy_from_slice(&bytes[i1_start..i1_end]);
+                    let class_index = u16::from_be_bytes(class_index_arr);
+
+                    let mut nati_arr: [u8; 2] = Default::default();
+                    let i2_start = index + 3;
+                    let i2_end = index + 5;
+                    nati_arr.copy_from_slice(&bytes[i2_start..i2_end]);
+                    let nati = u16::from_be_bytes(nati_arr);
+
+                    cp_infos.push(Box::new(Methodref::new(class_index, nati)));
+                    index = index + 4;
+                }
+                _ => panic!("Unknown tag: {}", tag)
+            }
+        }
+
+        cp_infos
     }
 }
 

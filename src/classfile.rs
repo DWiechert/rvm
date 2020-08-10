@@ -1,3 +1,5 @@
+use crate::cp_info::CPInfo;
+
 pub struct ClassFile {
     magic_number: u32,
     minor_version: u16,
@@ -10,7 +12,8 @@ impl ClassFile {
         magic_number: u32,
         minor_version: u16,
         major_version: u16,
-        constant_pool_count: u16) -> Self {
+        constant_pool_count: u16,
+        cp_infos: Vec<Box<dyn CPInfo>>) -> Self {
         Self {
             magic_number,
             minor_version,
