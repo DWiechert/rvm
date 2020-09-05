@@ -29,6 +29,13 @@ impl CPInfo for Fieldref {
     }
 }
 
+impl Fieldref {
+    pub fn new(class_index: u16,
+               name_and_type_index: u16,) -> Self {
+        Self {class_index, name_and_type_index }
+    }
+}
+
 pub struct Methodref {
     class_index: u16,
     name_and_type_index: u16,
@@ -78,6 +85,12 @@ impl CPInfo for Integer {
     }
 }
 
+impl Integer {
+    pub fn new(bytes: u32) -> Self {
+        Self { bytes }
+    }
+}
+
 pub struct Float {
     bytes: u32,
 }
@@ -121,6 +134,13 @@ impl CPInfo for NameAndType {
     }
 }
 
+impl NameAndType {
+    pub fn new(name_index: u16,
+    descriptor_index: u16,) -> Self {
+        Self { name_index, descriptor_index }
+    }
+}
+
 pub struct Utf8 {
     length: u16,
     bytes: Vec<u8>,
@@ -129,6 +149,13 @@ pub struct Utf8 {
 impl CPInfo for Utf8 {
     fn tag(&self) -> u8 {
         1
+    }
+}
+
+impl Utf8 {
+    pub fn new(length: u16,
+    bytes: Vec<u8>,) -> Self {
+        Self { length, bytes}
     }
 }
 

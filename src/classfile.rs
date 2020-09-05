@@ -13,7 +13,13 @@ impl ClassFile {
         minor_version: u16,
         major_version: u16,
         constant_pool_count: u16,
-        cp_infos: Vec<Box<dyn CPInfo>>) -> Self {
+        cp_infos: Vec<Box<dyn CPInfo>>,
+        // access_flags: u16,
+        // this_class: u16,
+        // super_class: u16,
+        // interfaces_count: u16,
+        //
+    ) -> Self {
         Self {
             magic_number,
             minor_version,

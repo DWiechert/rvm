@@ -1,7 +1,7 @@
 use std::fs::{File, OpenOptions};
 use std::io::{Read};
 use crate::classfile::ClassFile;
-use crate::cp_info::{CPInfo, Class, Methodref};
+use crate::cp_info::{CPInfo, Class, Methodref, Fieldref, Integer, NameAndType, Utf8};
 
 pub struct Reader {
     file: File,
@@ -64,12 +64,58 @@ impl Reader {
         while index < bytes.len() {
             let mut tag = bytes.get(index).unwrap();
             match tag {
+                1 => {
+                    println!("Got 1");
+                    let mut length_arr: [u8; 2] = Default::default();
+                    let i1_start = index + 1;
+                    let i1_end = index + 3;
+                    length_arr.copy_from_slice(&bytes[i1_start..i1_end]);
+                    let length = u16::from_be_bytes(length_arr);
+
+                    let mut bytes_vec: Vec<u8> = Vec::new();
+                    let i2_start = index + 3;
+                    let i2_end = index + 3 + (length as usize);
+                    bytes_vec.copy_from_slice(&bytes[i2_start..i2_end]);
+
+                    cp_infos.push(Box::new(Utf8::new(length, bytes_vec)));
+                    index = index + (length as usize) + 1;
+                }
+                3 => {
+                    println!("Got 3");
+                    let mut bytes_arr: [u8; 4] = Default::default();
+                    let i1_start = index + 1;
+                    let i1_end = index + 5;
+                    bytes_arr.copy_from_slice(&bytes[i1_start..i1_end]);
+                    let bs = u32::from_be_bytes(bytes_arr);
+                    cp_infos.push(Box::new(Integer::new(bs)));
+                    index = index + 5;
+                }
                 7 => {
                     println!("Got 7");
                     let mut name_index_arr: [u8; 2] = Default::default();
-                    name_index_arr.copy_from_slice(&bytes[1..3]);
+                    let i1_start = index + 1;
+                    let i1_end = index + 3;
+                    name_index_arr.copy_from_slice(&bytes[i1_start..i1_end]);
                     let name_index = u16::from_be_bytes(name_index_arr);
-                    cp_infos.push(Box::new(Class::new(name_index)))
+                    cp_infos.push(Box::new(Class::new(name_index)));
+                    index = index + 3;
+                }
+                9 => {
+                    println!("Got 9");
+                    let mut class_index_arr: [u8; 2] = Default::default();
+                    let i1_start = index + 1;
+                    let i1_end = index + 3;
+                    class_index_arr.copy_from_slice(&bytes[i1_start..i1_end]);
+                    let class_index = u16::from_be_bytes(class_index_arr);
+
+                    let mut nati_arr: [u8; 2] = Default::default();
+                    let i2_start = index + 3;
+                    let i2_end = index + 5;
+                    nati_arr.copy_from_slice(&bytes[i2_start..i2_end]);
+                    let nati = u16::from_be_bytes(nati_arr);
+
+                    cp_infos.push(Box::new(Fieldref::new(class_index, nati)));
+                    index = index + 5;
                 }
                 10 => {
                     println!("Got 10");
@@ -86,7 +132,24 @@ impl Reader {
                     let nati = u16::from_be_bytes(nati_arr);
 
                     cp_infos.push(Box::new(Methodref::new(class_index, nati)));
-                    index = index + 4;
+                    index = index + 5;
+                }
+                12 => {
+                    println!("Got 12");
+                    let mut name_index_arr: [u8; 2] = Default::default();
+                    let i1_start = index + 1;
+                    let i1_end = index + 3;
+                    name_index_arr.copy_from_slice(&bytes[i1_start..i1_end]);
+                    let name_index = u16::from_be_bytes(name_index_arr);
+
+                    let mut descriptor_index_arr: [u8; 2] = Default::default();
+                    let i2_start = index + 3;
+                    let i2_end = index + 5;
+                    descriptor_index_arr.copy_from_slice(&bytes[i2_start..i2_end]);
+                    let descriptor_index = u16::from_be_bytes(descriptor_index_arr);
+
+                    cp_infos.push(Box::new(NameAndType::new(name_index, descriptor_index)));
+                    index = index + 5;
                 }
                 _ => panic!("Unknown tag: {}", tag)
             }
